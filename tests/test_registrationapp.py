@@ -4,7 +4,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.alert import Alert
 from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.utils import ChromeType
 import subprocess
 import time
 import requests
@@ -18,26 +17,31 @@ import signal
 def start_flask_app():
     """Start the Flask app before running tests and stop it afterwards."""
     print("🚀 Starting Flask app...")
+
     process = subprocess.Popen(
         ["python", "app.py"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP  # for Windows
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP  # For Windows
     )
 
-    time.sleep(5)
-
-    # Verify the app is running
-    try:
-        requests.get("http://127.0.0.1:5000")
-        print("✅ Flask app is running.")
-    except requests.exceptions.ConnectionError:
+    # Wait for Flask to start
+    for i in range(15):
+        try:
+            requests.get("http://127.0.0.1:5000")
+            print("✅ Flask app is running.")
+            break
+        except requests.exceptions.ConnectionError:
+            time.sleep(1)
+    else:
+        stderr = process.stderr.read()
+        print("❌ Flask failed to start.\nError Log:\n", stderr)
         process.kill()
-        pytest.fail("❌ Flask app did not start properly.")
+        pytest.fail("Flask app did not start properly.")
 
-    yield  # Run tests
+    yield  # Run the tests
 
-    # Stop Flask app after all tests
+    # Stop Flask app after tests
     print("🛑 Shutting down Flask app...")
     try:
         process.send_signal(signal.CTRL_BREAK_EVENT)
@@ -47,12 +51,13 @@ def start_flask_app():
     except Exception as e:
         print(f"⚠️ Error stopping Flask app: {e}")
 
+
 # ------------------------------------------------------------
 # Fixture: Selenium WebDriver setup/teardown
 # ------------------------------------------------------------
 @pytest.fixture
 def setup_teardown():
-    # Chrome options for headless Jenkins execution
+    """Setup and teardown for Selenium WebDriver."""
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
@@ -60,13 +65,15 @@ def setup_teardown():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
 
+    # ✅ No ChromeType needed — works with default Chrome install
     driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager(chrome_type=ChromeType.GOOGLE, version="latest").install()),
+        service=Service(ChromeDriverManager().install()),
         options=chrome_options
     )
 
     yield driver
     driver.quit()
+
 
 # ------------------------------------------------------------
 # Helper: Handle alert safely
@@ -76,6 +83,7 @@ def get_alert_text(driver):
     text = alert.text
     alert.accept()
     return text
+
 
 # ------------------------------------------------------------
 # Tests
@@ -94,6 +102,7 @@ def test_empty_username(setup_teardown):
     alert_text = get_alert_text(driver)
     assert alert_text == "Username cannot be empty."
 
+
 # Test 2: Empty password
 def test_empty_password(setup_teardown):
     driver = setup_teardown
@@ -107,6 +116,7 @@ def test_empty_password(setup_teardown):
     alert_text = get_alert_text(driver)
     assert alert_text == "Password cannot be empty."
 
+
 # Test 3: Password too short
 def test_short_password(setup_teardown):
     driver = setup_teardown
@@ -119,6 +129,7 @@ def test_short_password(setup_teardown):
     time.sleep(1)
     alert_text = get_alert_text(driver)
     assert alert_text == "Password must be atleast 6 characters long."
+
 
 # Test 4: Valid input — should redirect to greeting.html
 def test_valid_input(setup_teardown):
