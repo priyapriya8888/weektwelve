@@ -4,6 +4,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.alert import Alert
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.utils import ChromeType
 import subprocess
 import time
 import requests
@@ -35,7 +36,7 @@ def start_flask_app():
             time.sleep(1)
     else:
         stderr = process.stderr.read()
-        print("❌ Flask failed to start.\nError Log:\n", stderr)
+        print("❌ Flask failed to start.\nError Log:\n", stderr.decode())
         process.kill()
         pytest.fail("Flask app did not start properly.")
 
@@ -65,9 +66,9 @@ def setup_teardown():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    # ✅ No ChromeType needed — works with default Chrome install
+    # ✅ Ensure latest ChromeDriver version (compatible with Chrome 141)
     driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
+        service=Service(ChromeDriverManager(chrome_type=ChromeType.GOOGLE, version="latest").install()),
         options=chrome_options
     )
 
