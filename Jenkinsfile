@@ -19,14 +19,14 @@ pipeline {
                 // ✅ Step 1: Upgrade pip
                 bat "\"%PYTHON_EXE%\" -m pip install --upgrade pip"
 
-                // ✅ Step 2: Upgrade webdriver-manager (latest ChromeDriver support)
-                bat "\"%PYTHON_EXE%\" -m pip install --upgrade webdriver-manager"
+                // ✅ Step 2: Install compatible webdriver-manager (to avoid ChromeType import error)
+                bat "\"%PYTHON_EXE%\" -m pip install webdriver-manager==3.8.6"
 
                 // ✅ Step 3: Install dependencies from requirements.txt
                 bat "\"%PYTHON_EXE%\" -m pip install -r requirements.txt"
 
                 // ✅ Step 4: Clear old ChromeDriver cache
-                bat 'if exist %USERPROFILE%\\.wdm\\drivers\\chromedriver rd /s /q %USERPROFILE%\\.wdm\\drivers\\chromedriver'
+                bat "if exist %USERPROFILE%\\.wdm\\drivers\\chromedriver rd /s /q %USERPROFILE%\\.wdm\\drivers\\chromedriver"
 
                 // ✅ Step 5: Run Selenium tests with pytest
                 bat "\"%PYTHON_EXE%\" -m pytest -v --maxfail=1 --disable-warnings || echo Pytest failed - check logs for details"
@@ -43,7 +43,7 @@ pipeline {
         stage('Docker Login (Secure)') {
             steps {
                 echo "🔐 Logging in to Docker Hub"
-                bat 'docker login -u vishnupriya68 -p "Shivapriya123@"'
+                bat "docker login -u vishnupriya68 -p \"Shivapriya123@\""
             }
         }
 
@@ -58,18 +58,18 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 echo "☸️ Deploying to Kubernetes Cluster"
-                bat 'kubectl apply -f deployment.yaml --validate=false'
-                bat 'kubectl apply -f service.yaml'
+                bat "kubectl apply -f deployment.yaml --validate=false"
+                bat "kubectl apply -f service.yaml"
             }
         }
     }
 
     post {
         success {
-            echo '✅ Pipeline completed successfully! Everything deployed to Kubernetes 🎉'
+            echo "✅ Pipeline completed successfully! Everything deployed to Kubernetes 🎉"
         }
         failure {
-            echo '❌ Pipeline failed. Please check the logs above for details.'
+            echo "❌ Pipeline failed. Please check the logs above for details."
         }
     }
 }
