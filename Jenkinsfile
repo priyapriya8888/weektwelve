@@ -11,27 +11,22 @@ pipeline {
         stage('Run Selenium Tests with pytest') {
             steps {
                 echo "🏃 Running Selenium Tests using pytest"
-                
+
                 // Install dependencies
                 bat 'pip install -r requirements.txt'
 
-                // Optionally start Flask app if needed (uncomment below)
-                // bat 'start /B python app.py'
-                // bat 'ping 127.0.0.1 -n 5 > nul'
+                // Clear old ChromeDriver cache
+                bat 'if exist %USERPROFILE%\\.wdm\\drivers\\chromedriver rd /s /q %USERPROFILE%\\.wdm\\drivers\\chromedriver'
 
-                // Run pytest, but don’t fail pipeline immediately — helps debugging
-                bat 'pytest -v || echo Pytest failed - check logs for details'
+                // Run tests
+                bat 'pytest -v --maxfail=1 --disable-warnings || echo Pytest failed - check logs for details'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 echo "🐳 Building Docker Image"
-                
-                // Verify Dockerfile exists
                 bat 'dir Dockerfile'
-                
-                // Build image
                 bat "docker build -t %IMAGE_NAME% ."
             }
         }
@@ -39,8 +34,7 @@ pipeline {
         stage('Docker Login (Secure)') {
             steps {
                 echo "🔐 Logging in to Docker Hub using Jenkins credentials"
-                    // ✅ Secure login using Jenkins credentials
-                    bat 'docker login -u vishnupriya68 -p "Shivapriya123@"'
+                bat 'docker login -u vishnupriya68 -p "Shivapriya123@"'
             }
         }
 
@@ -52,13 +46,12 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') { 
-            steps { 
+        stage('Deploy to Kubernetes') {
+            steps {
                 echo "☸️ Deploying to Kubernetes Cluster"
-                // Ensure kubectl is installed and configured in Jenkins node
                 bat 'kubectl apply -f deployment.yaml --validate=false'
                 bat 'kubectl apply -f service.yaml'
-            } 
+            }
         }
     }
 
