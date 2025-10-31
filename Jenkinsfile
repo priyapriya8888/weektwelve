@@ -2,8 +2,12 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "seleniumdemoapp:v1"
+        // ✅ Docker image details (matches deployment.yaml)
+        IMAGE_NAME = "seleniumtestdemoapp:v1"
         DOCKER_REPO = "vishnupriya68/sample1:seleniumtestimage"
+
+        // ✅ Python path on your system
+        PYTHON_EXE = "C:\\Users\\Vishnupriya\\AppData\\Local\\Programs\\Python\\Python312\\python.exe"
     }
 
     stages {
@@ -12,31 +16,33 @@ pipeline {
             steps {
                 echo "🏃 Running Selenium Tests using pytest"
 
-                // ✅ Step 1: Upgrade webdriver-manager to match latest Chrome
-                bat 'pip install --upgrade webdriver-manager'
+                // ✅ Step 1: Upgrade pip
+                bat "\"%PYTHON_EXE%\" -m pip install --upgrade pip"
 
-                // ✅ Step 2: Install all other dependencies
-                bat 'pip install -r requirements.txt'
+                // ✅ Step 2: Upgrade webdriver-manager (latest ChromeDriver support)
+                bat "\"%PYTHON_EXE%\" -m pip install --upgrade webdriver-manager"
 
-                // ✅ Step 3: Clear old ChromeDriver cache (forces fresh driver download)
+                // ✅ Step 3: Install dependencies from requirements.txt
+                bat "\"%PYTHON_EXE%\" -m pip install -r requirements.txt"
+
+                // ✅ Step 4: Clear old ChromeDriver cache
                 bat 'if exist %USERPROFILE%\\.wdm\\drivers\\chromedriver rd /s /q %USERPROFILE%\\.wdm\\drivers\\chromedriver'
 
-                // ✅ Step 4: Run Selenium tests with pytest
-                bat 'pytest -v --maxfail=1 --disable-warnings || echo Pytest failed - check logs for details'
+                // ✅ Step 5: Run Selenium tests with pytest
+                bat "\"%PYTHON_EXE%\" -m pytest -v --maxfail=1 --disable-warnings || echo Pytest failed - check logs for details"
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 echo "🐳 Building Docker Image"
-                bat 'dir Dockerfile'
                 bat "docker build -t %IMAGE_NAME% ."
             }
         }
 
         stage('Docker Login (Secure)') {
             steps {
-                echo "🔐 Logging in to Docker Hub using Jenkins credentials"
+                echo "🔐 Logging in to Docker Hub"
                 bat 'docker login -u vishnupriya68 -p "Shivapriya123@"'
             }
         }
@@ -60,10 +66,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Pipeline completed successfully!'
+            echo '✅ Pipeline completed successfully! Everything deployed to Kubernetes 🎉'
         }
         failure {
-            echo '❌ Pipeline failed. Please check the stage logs above for details.'
+            echo '❌ Pipeline failed. Please check the logs above for details.'
         }
     }
 }
