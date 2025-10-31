@@ -3,12 +3,14 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.alert import Alert
+from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 import subprocess
 import time
 import requests
 import os
 import signal
+import re
 
 # ------------------------------------------------------------
 # Fixture: Start Flask app before all tests and stop after
@@ -58,16 +60,32 @@ def start_flask_app():
 @pytest.fixture
 def setup_teardown():
     """Setup and teardown for Selenium WebDriver."""
-    chrome_options = webdriver.ChromeOptions()
+    chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    # ✅ Auto-match ChromeDriver with installed Chrome version
+    # Detect installed Chrome version
+    try:
+        result = subprocess.run(
+            [
+                "powershell",
+                "-Command",
+                '(Get-Item "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe").VersionInfo.ProductVersion'
+            ],
+            capture_output=True, text=True
+        )
+        chrome_version = re.match(r"(\d+)", result.stdout.strip()).group(1)
+        print(f"🧩 Detected Chrome major version: {chrome_version}")
+    except Exception as e:
+        print(f"⚠️ Could not detect Chrome version: {e}")
+        chrome_version = "latest"
+
+    # Match ChromeDriver to installed Chrome
     driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
+        service=Service(ChromeDriverManager(driver_version=chrome_version).install()),
         options=chrome_options
     )
 
