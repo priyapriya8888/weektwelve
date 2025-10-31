@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.utils import ChromeType
 import subprocess
 import time
 import requests
@@ -24,7 +25,7 @@ def start_flask_app():
         ["python", "app.py"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP  # For Windows
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP  # Windows compatible
     )
 
     # Wait for Flask to start
@@ -67,7 +68,7 @@ def setup_teardown():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    # Detect installed Chrome version
+    # Try detecting Chrome version (optional for logging)
     try:
         result = subprocess.run(
             [
@@ -81,11 +82,10 @@ def setup_teardown():
         print(f"🧩 Detected Chrome major version: {chrome_version}")
     except Exception as e:
         print(f"⚠️ Could not detect Chrome version: {e}")
-        chrome_version = "latest"
 
-    # Match ChromeDriver to installed Chrome
+    # ✅ Use auto-managed ChromeDriver (no version argument)
     driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager(driver_version=chrome_version).install()),
+        service=Service(ChromeDriverManager(chrome_type=ChromeType.GOOGLE).install()),
         options=chrome_options
     )
 
