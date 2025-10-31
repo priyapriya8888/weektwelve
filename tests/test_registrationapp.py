@@ -12,6 +12,7 @@ import requests
 import os
 import signal
 import re
+import shutil
 
 # ------------------------------------------------------------
 # Fixture: Start Flask app before all tests and stop after
@@ -60,7 +61,7 @@ def start_flask_app():
 # ------------------------------------------------------------
 @pytest.fixture
 def setup_teardown():
-    """Setup and teardown for Selenium WebDriver."""
+    """Setup and teardown for Selenium WebDriver with forced ChromeDriver refresh."""
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
@@ -68,7 +69,7 @@ def setup_teardown():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    # Try detecting installed Chrome version
+    # 🧩 Detect installed Chrome version
     try:
         result = subprocess.run(
             [
@@ -83,11 +84,23 @@ def setup_teardown():
         print(f"🧩 Detected Chrome major version: {chrome_version}")
     except Exception as e:
         print(f"⚠️ Could not detect Chrome version: {e}")
+        chrome_version = "latest"
 
-    # ✅ Use webdriver_manager to handle ChromeDriver automatically
-    driver_path = ChromeDriverManager(chrome_type=ChromeType.GOOGLE).install()
+    # 🧹 Delete old webdriver_manager cache
+    wdm_path = r"C:\WINDOWS\system32\config\systemprofile\.wdm"
+    if os.path.exists(wdm_path):
+        print(f"🧹 Removing old WebDriver cache: {wdm_path}")
+        shutil.rmtree(wdm_path, ignore_errors=True)
 
-    # If ChromeDriverManager returns only a folder, append executable name
+    # ✅ Force download the correct ChromeDriver version
+    os.environ["WDM_CACHE"] = "False"
+    os.environ["WDM_LOCAL"] = "1"
+    os.environ["WDM_LOG_LEVEL"] = "0"
+
+    driver_path = ChromeDriverManager(
+        chrome_type=ChromeType.GOOGLE, version="latest"
+    ).install()
+
     if os.path.isdir(driver_path):
         driver_path = os.path.join(driver_path, "chromedriver.exe")
 
