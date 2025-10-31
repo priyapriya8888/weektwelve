@@ -4,8 +4,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.utils import ChromeType
 import subprocess
 import time
 import requests
@@ -61,7 +59,7 @@ def start_flask_app():
 # ------------------------------------------------------------
 @pytest.fixture
 def setup_teardown():
-    """Setup and teardown for Selenium WebDriver with forced ChromeDriver refresh."""
+    """Setup and teardown for Selenium WebDriver using manually set ChromeDriver."""
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
@@ -69,46 +67,15 @@ def setup_teardown():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    # 🧩 Detect installed Chrome version
-    try:
-        result = subprocess.run(
-            [
-                "powershell",
-                "-Command",
-                '(Get-Item "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe").VersionInfo.ProductVersion'
-            ],
-            capture_output=True,
-            text=True
-        )
-        chrome_version = re.match(r"(\d+)", result.stdout.strip()).group(1)
-        print(f"🧩 Detected Chrome major version: {chrome_version}")
-    except Exception as e:
-        print(f"⚠️ Could not detect Chrome version: {e}")
-        chrome_version = "latest"
-
-    # 🧹 Delete old webdriver_manager cache
-    wdm_path = r"C:\WINDOWS\system32\config\systemprofile\.wdm"
-    if os.path.exists(wdm_path):
-        print(f"🧹 Removing old WebDriver cache: {wdm_path}")
-        shutil.rmtree(wdm_path, ignore_errors=True)
-
-    # ✅ Force download the correct ChromeDriver version
-    os.environ["WDM_CACHE"] = "False"
-    os.environ["WDM_LOCAL"] = "1"
-    os.environ["WDM_LOG_LEVEL"] = "0"
-
-    driver_path = ChromeDriverManager(
-        chrome_type=ChromeType.GOOGLE, version="latest"
-    ).install()
-
-    if os.path.isdir(driver_path):
-        driver_path = os.path.join(driver_path, "chromedriver.exe")
+    # 🧩 Manually set ChromeDriver path for Jenkins (Chrome 141)
+    driver_path = r"C:\Tools\chromedriver\chromedriver.exe"
 
     if not os.path.exists(driver_path):
         pytest.fail(f"❌ ChromeDriver not found at {driver_path}")
 
-    print(f"📁 Using ChromeDriver from: {driver_path}")
+    print(f"📁 Using manually set ChromeDriver from: {driver_path}")
 
+    # ✅ Start ChromeDriver
     driver = webdriver.Chrome(service=Service(driver_path), options=chrome_options)
     yield driver
     driver.quit()
