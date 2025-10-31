@@ -12,13 +12,16 @@ pipeline {
             steps {
                 echo "🏃 Running Selenium Tests using pytest"
 
-                // Install dependencies
+                // ✅ Step 1: Upgrade webdriver-manager to match latest Chrome
+                bat 'pip install --upgrade webdriver-manager'
+
+                // ✅ Step 2: Install all other dependencies
                 bat 'pip install -r requirements.txt'
 
-                // Clear old ChromeDriver cache
+                // ✅ Step 3: Clear old ChromeDriver cache (forces fresh driver download)
                 bat 'if exist %USERPROFILE%\\.wdm\\drivers\\chromedriver rd /s /q %USERPROFILE%\\.wdm\\drivers\\chromedriver'
 
-                // Run tests
+                // ✅ Step 4: Run Selenium tests with pytest
                 bat 'pytest -v --maxfail=1 --disable-warnings || echo Pytest failed - check logs for details'
             }
         }
