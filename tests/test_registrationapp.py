@@ -4,8 +4,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.core.utils import ChromeType
 import subprocess
 import time
 import requests
@@ -25,7 +23,7 @@ def start_flask_app():
         ["python", "app.py"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP  # Windows compatible
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP  # For Windows
     )
 
     # Wait for Flask to start
@@ -60,7 +58,7 @@ def start_flask_app():
 # ------------------------------------------------------------
 @pytest.fixture
 def setup_teardown():
-    """Setup and teardown for Selenium WebDriver."""
+    """Setup and teardown for Selenium WebDriver (fixed ChromeDriver path)."""
     chrome_options = Options()
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
@@ -68,26 +66,14 @@ def setup_teardown():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    # Try detecting Chrome version (optional for logging)
-    try:
-        result = subprocess.run(
-            [
-                "powershell",
-                "-Command",
-                '(Get-Item "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe").VersionInfo.ProductVersion'
-            ],
-            capture_output=True, text=True
-        )
-        chrome_version = re.match(r"(\d+)", result.stdout.strip()).group(1)
-        print(f"🧩 Detected Chrome major version: {chrome_version}")
-    except Exception as e:
-        print(f"⚠️ Could not detect Chrome version: {e}")
+    # ✅ Use locally downloaded ChromeDriver (matches Chrome 142)
+    driver_path = r"C:\Tools\chromedriver\chromedriver.exe"  # 👈 update if you saved elsewhere
 
-    # ✅ Use auto-managed ChromeDriver (no version argument)
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager(chrome_type=ChromeType.GOOGLE).install()),
-        options=chrome_options
-    )
+    if not os.path.exists(driver_path):
+        pytest.fail(f"❌ ChromeDriver not found at {driver_path}. Please verify the path.")
+
+    print(f"🧩 Using ChromeDriver from: {driver_path}")
+    driver = webdriver.Chrome(service=Service(driver_path), options=chrome_options)
 
     yield driver
     driver.quit()
@@ -106,7 +92,6 @@ def get_alert_text(driver):
 # ------------------------------------------------------------
 # Tests
 # ------------------------------------------------------------
-
 def test_empty_username(setup_teardown):
     driver = setup_teardown
     driver.get("http://127.0.0.1:5000/")
